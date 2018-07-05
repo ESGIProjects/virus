@@ -2,15 +2,14 @@ package main
 
 import (
 	"io/ioutil"
+	"bufio"
+	"os"
 )
 
-
-
-
-/*
 func main() {
 	print("Enter a path directory: ")
-	var path string
+	var path, command string
+	var files []string
 
 	scanner := bufio.NewScanner(os.Stdin)
 	if scanner.Scan() {
@@ -21,12 +20,24 @@ func main() {
 		path = path + "/"
 	}
 
-	files := listFiles(path)
-	printFiles(files)
-	println(len(files), "files found")
+	print("Crypt or decrypt? ")
 
+	if scanner.Scan() {
+		command = scanner.Text()
+	}
+
+	if command == "crypt" {
+		files = listFiles(path, true)
+		cryptFiles(files)
+	} else if command == "decrypt" {
+		files = listFiles(path, false)
+		decryptFiles(files)
+	} else {
+		println("Wrong command ! Type \"crypt\" or \"decrypt\".")
+	}
+
+	println(len(files), "files found")
 }
-*/
 
 func padding(text string, blockSize int) []string {
 	array := make([]string, 0)
@@ -127,12 +138,7 @@ func unxor(first string, second string) (string) {
  */
 }
 
-func main() {
-	key := "abcdefghijklmnop"
-	text := "Bonjour encule de ta race il n y a pas assez de caracteres donc j en rajoute car tu es un sale connard espece de Kevin de merde est ce que t entends ca, ca depasse l entendement fils de pute onche onche onche test de Jason qui pue des fesses et qui mange des zizis de maeva et en plus il est en couple avec elle xoxop"
-
-	println("Taille texte de base", len(text))
-
+func encrypt(text string, key string) (string) {
 	// Découpe en blocs
 	paddingArray := padding(text, 16)
 
@@ -140,44 +146,52 @@ func main() {
 	encrypted := make([]string, 0)
 
 	for index, txt := range paddingArray {
-		println(index, txt)
-
 		cryptedKey := cesar(key, index)
 		encrypted = append(encrypted, xor(txt, cryptedKey))
 	}
 
-	finalString := ""
+	result := ""
 
-	for index, txt := range encrypted {
-		println(index, txt)
-		finalString += txt
+	for _, txt := range encrypted {
+		result += txt
 	}
 
-	println(finalString)
-	println("Taille texte encrypté", len(finalString))
+	return result
+}
 
-	////////// Déchiffrement
+func decrypt(text string, key string) (string) {
+	// Découpe en blocs
+	paddingArray := padding(text, 16)
 
-	decryptPadding := padding(finalString, 16)
+	// Création du tableau final
 	decrypted := make([]string, 0)
 
-	for index, txt := range decryptPadding {
-
+	for index, txt := range paddingArray {
 		cryptedKey := cesar(key, index)
 		decrypted = append(decrypted, unxor(cryptedKey, txt))
 	}
 
-	decryptedString := ""
-	for index, txt := range decrypted {
-		println(index, txt)
-		decryptedString += txt
+	result := ""
+
+	for _, txt := range decrypted {
+		result += txt
 	}
 
-	println(decryptedString)
-	println("Taille texte décrypté", len(decryptedString))
+	return result
 }
 
-func listFiles(path string) ([]string) {
+const key = "abcdefghijklmnop"
+
+/*func main() {
+	text := "Bonjour encule de ta race il n y a pas assez de caracteres donc j en rajoute car tu es un sale connard espece de Kevin de merde est ce que t entends ca, ca depasse l entendement fils de pute onche onche onche test de Jason qui pue des fesses et qui mange des zizis de maeva et en plus il est en couple avec elle xoxop"
+
+	encrypted := encrypt(text, key)
+	decrypted := decrypt(encrypted, key)
+
+	println(decrypted)
+} */
+
+func listFiles(path string, crypt bool) ([]string) {
 	files := make([]string, 0)
 
 	directoryContent, err := ioutil.ReadDir(path)
@@ -188,10 +202,15 @@ func listFiles(path string) ([]string) {
 
 	for _, fileInDirectory := range directoryContent {
 		if !fileInDirectory.IsDir() {
-			files = append(files, fileInDirectory.Name())
+
+			filename := fileInDirectory.Name()
+
+			if crypt && filename[len(filename)-1:] != "_" || !crypt && filename[len(filename)-1:] == "_" {
+				files = append(files, path + fileInDirectory.Name())
+			}
 		} else {
-			newPath := path + "/" + fileInDirectory.Name()
-			files = append(files, listFiles(newPath)...)
+			newPath := path + fileInDirectory.Name() + "/"
+			files = append(files, listFiles(newPath, crypt)...)
 		}
 	}
 
@@ -201,5 +220,53 @@ func listFiles(path string) ([]string) {
 func printFiles(files []string) {
 	for _, file := range files {
 		println(file)
+	}
+}
+
+func cryptFiles(files []string) {
+	for _, file := range files {
+		content, err := ioutil.ReadFile(file)
+		if err != nil {
+			println(err.Error())
+			continue
+		}
+
+		encryptedContent := encrypt(string(content), key)
+
+		err = ioutil.WriteFile(file + "_", []byte(encryptedContent), 0644)
+		if err != nil {
+			println(err.Error())
+			continue
+		}
+
+		err = os.Remove(file)
+		if err != nil {
+			println(err.Error())
+			continue
+		}
+	}
+}
+
+func decryptFiles(files []string) {
+	for _, file := range files {
+		content, err := ioutil.ReadFile( file)
+		if err != nil {
+			println(err.Error())
+			continue
+		}
+
+		decryptedContent := decrypt(string(content), key)
+
+		err = ioutil.WriteFile(file[0:len(file)-1], []byte(decryptedContent), 0644)
+		if err != nil {
+			println(err.Error())
+			continue
+		}
+
+		err = os.Remove(file)
+		if err != nil {
+			println(err.Error())
+			continue
+		}
 	}
 }
