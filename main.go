@@ -6,11 +6,14 @@ import (
 	"os"
 )
 
+const key = "abcdefghijklmnop"
+
 func main() {
 	print("Enter a path directory: ")
 	var path, command string
 	var files []string
 
+	// Ask folder to user
 	scanner := bufio.NewScanner(os.Stdin)
 	if scanner.Scan() {
 		path = scanner.Text()
@@ -22,6 +25,7 @@ func main() {
 
 	print("Crypt or decrypt? ")
 
+	// Ask user the operation to do
 	if scanner.Scan() {
 		command = scanner.Text()
 	}
@@ -39,6 +43,9 @@ func main() {
 	println(len(files), "files found")
 }
 
+/**
+	Function that cuts some text in multiple blocks
+ */
 func padding(text string, blockSize int) []string {
 	array := make([]string, 0)
 
@@ -66,6 +73,11 @@ func abs(number int) (int) {
 	return number
 }
 
+/**
+	Perform a Cesar Cipher
+	If the shift is < 0, shifting to the left
+	Otherwise, shifting to the right
+ */
 func cesar(text string, shiftNumber int) string {
 	shift, offset := rune(abs(shiftNumber) % 26), rune(26)
 
@@ -93,6 +105,10 @@ func cesar(text string, shiftNumber int) string {
 	return string(runes)
 }
 
+/**
+	Performs a bitwise XOR on each byte of two strings
+	If the strings have not the same length, we use the smallest size
+ */
 func xor(first string, second string) (string) {
 	var length int
 
@@ -111,6 +127,11 @@ func xor(first string, second string) (string) {
 	return string(bytes)
 }
 
+
+/**
+	Reverse bitwise XOR
+	The compute formula was determined with a truth table from the XOR table
+ */
 func unxor(first string, second string) (string) {
 	var length int
 
@@ -127,24 +148,18 @@ func unxor(first string, second string) (string) {
 	}
 
 	return string(bytes)
-
-	/*
-&   bitwise AND
-|   bitwise OR
-^   bitwise XOR
-&^   AND NOT
-<<   left shift
->>   right shift
- */
 }
 
 func encrypt(text string, key string) (string) {
-	// Découpe en blocs
+	// Cuts text in blocks
 	paddingArray := padding(text, 16)
-
-	// Création du tableau final
 	encrypted := make([]string, 0)
 
+	/**
+		Crypt each block with the following algorithm:
+		- Cesar cipher on the key, with a shift corresponding to the counter
+		- XOR between crypted key and the block
+	 */
 	for index, txt := range paddingArray {
 		cryptedKey := cesar(key, index)
 		encrypted = append(encrypted, xor(txt, cryptedKey))
@@ -160,12 +175,15 @@ func encrypt(text string, key string) (string) {
 }
 
 func decrypt(text string, key string) (string) {
-	// Découpe en blocs
+	// Cuts text in blocks
 	paddingArray := padding(text, 16)
-
-	// Création du tableau final
 	decrypted := make([]string, 0)
 
+	/**
+		Decrypt each block with the following algorithm:
+		- Cesar cipher on the key, with a shift corresponding to the counter
+		- Reverse the XOR between crypted key and encrypted block, resulting in the decrypted block
+	 */
 	for index, txt := range paddingArray {
 		cryptedKey := cesar(key, index)
 		decrypted = append(decrypted, unxor(cryptedKey, txt))
@@ -180,17 +198,11 @@ func decrypt(text string, key string) (string) {
 	return result
 }
 
-const key = "abcdefghijklmnop"
-
-/*func main() {
-	text := "Bonjour encule de ta race il n y a pas assez de caracteres donc j en rajoute car tu es un sale connard espece de Kevin de merde est ce que t entends ca, ca depasse l entendement fils de pute onche onche onche test de Jason qui pue des fesses et qui mange des zizis de maeva et en plus il est en couple avec elle xoxop"
-
-	encrypted := encrypt(text, key)
-	decrypted := decrypt(encrypted, key)
-
-	println(decrypted)
-} */
-
+/**
+	List all files inside a given path, with files in subdirectories
+	the `crypt` parameter determines if we list the crypted or decrypted files
+	crypted files have an `_` at the end
+*/
 func listFiles(path string, crypt bool) ([]string) {
 	files := make([]string, 0)
 
@@ -217,12 +229,11 @@ func listFiles(path string, crypt bool) ([]string) {
 	return files
 }
 
-func printFiles(files []string) {
-	for _, file := range files {
-		println(file)
-	}
-}
-
+/**
+	Crypt a list of files
+	The crypted files have an `_` at the end
+	The original files are deleted after
+ */
 func cryptFiles(files []string) {
 	for _, file := range files {
 		content, err := ioutil.ReadFile(file)
@@ -247,6 +258,11 @@ func cryptFiles(files []string) {
 	}
 }
 
+/**
+	Decrypt a list of files
+	The crypted files have an `_` at the end
+	The crypted files are deleted after
+ */
 func decryptFiles(files []string) {
 	for _, file := range files {
 		content, err := ioutil.ReadFile( file)
